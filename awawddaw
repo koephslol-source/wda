@@ -1,0 +1,52 @@
+getgenv().Private = {
+    Silent = {
+        Enabled = true,
+        Part = "HumanoidRootPart",
+        MouseRange = 150
+    }
+}
+
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local Camera = Workspace.CurrentCamera
+
+local Target = nil
+
+local function GetClosestPlayer()
+    local ClosestPlayer, ClosestDistance = nil, getgenv().Private.Silent.MouseRange
+    for _, v in Players:GetPlayers() do
+        if v and v.Character and v.Character:FindFirstChild(getgenv().Private.Silent.Part) then
+            if v ~= LocalPlayer then
+                local Position, OnScreen = Camera:WorldToScreenPoint(v.Character[getgenv().Private.Silent.Part].Position)
+                local Magnitude = (Vector2.new(Position.X, Position.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                if OnScreen and Magnitude < ClosestDistance then
+                    ClosestPlayer = v
+                    ClosestDistance = Magnitude
+                end
+            end
+        end
+    end
+    return ClosestPlayer
+end
+
+RunService.RenderStepped:Connect(function()
+    if getgenv().Private.Silent.Enabled then
+        Target = GetClosestPlayer()
+    end
+end)
+
+local Old; Old = hookmetamethod(game, "__namecall", function(...)
+    local Method = getnamecallmethod()
+    local Args = {...}
+    if Method == "Raycast" then
+        if getgenv().Private.Silent.Enabled and Target then
+            Args[2] = Camera.CFrame.Position
+            Args[3] = (Target.Character.Head.Position - Args[2]).Unit * 1000
+        end
+    end
+    return Old(unpack(Args))
+end)
