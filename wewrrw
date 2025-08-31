@@ -1,0 +1,52 @@
+print("loading waiting 10 sec")
+
+task.wait(10)
+
+print("loaded")
+
+local JUMPINGISACRIME = "IIIIllIIIlIllllIIIII"
+
+local players = game:GetService("Players")
+local userinputservice = game:GetService("UserInputService")
+local runservice = game:GetService("RunService")
+
+local localplayer = players.LocalPlayer
+local mouse = localplayer:GetMouse()
+local camera = workspace.CurrentCamera
+
+local enabled, target = false, nil
+
+local function get_target()
+    local closest_player, max_distance = nil, 500
+    for _, v in ipairs(players:GetPlayers()) do
+        if v.Character and v.Character:FindFirstChild("Head") then
+            if v ~= localplayer then
+                local position, onscreen = camera:WorldToScreenPoint(v.Character.Head.Position)
+                local mouse_distance = (Vector2.new(position.X, position.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+				if onscreen then
+                    if mouse_distance < max_distance then
+                        closest_player = v
+                        max_distance = mouse_distance
+                    end
+                end
+            end
+        end
+    end
+    return closest_player
+end
+
+userinputservice.InputBegan:Connect(function(input, gameprocessedevent)
+    if not gameprocessedevent then
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            if input.KeyCode == Enum.KeyCode.C then
+                enabled, target = not enabled, get_target()
+            end
+        end
+    end
+end)
+
+runservice.RenderStepped:Connect(function()
+    if enabled then
+        camera.CFrame = CFrame.new(camera.CFrame.p, target.Character.Head.Position)
+    end
+end)
